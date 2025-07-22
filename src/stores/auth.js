@@ -2,11 +2,12 @@ import { ref, computed, onMounted } from 'vue'
 import { defineStore } from 'pinia'
 import { useFirebaseAuth } from 'vuefire'
 import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 export const useAuthStore = defineStore('auth', () => {
   const auth = useFirebaseAuth()
   const router = useRouter()
+  const route = useRoute()
 
   const errorMsg = ref('')
   const authUser = ref(null)
@@ -15,7 +16,9 @@ export const useAuthStore = defineStore('auth', () => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
         authUser.value = user
-        router.push({ name: 'admin-propiedades' })
+        if (route.name === 'login') {
+          router.push({ name: 'admin-propiedades' })
+        }
       } else {
         authUser.value = null
       }

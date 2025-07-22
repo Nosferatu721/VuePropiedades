@@ -1,9 +1,6 @@
+import { getCurrentUser } from 'vuefire'
 import { createRouter, createWebHistory } from 'vue-router'
-import { onAuthStateChanged } from 'firebase/auth'
-import { useFirebaseAuth } from 'vuefire'
 import HomeView from '../views/HomeView.vue'
-
-const auth = useFirebaseAuth()
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -50,27 +47,20 @@ router.beforeEach(async (to, from, next) => {
 
   if (requiresAuth) {
     try {
-      await authenticateUser()
-      next()
-    } catch {
+      // Opción más simple con getCurrentUser de VueFire
+      const user = await getCurrentUser()
+      if (user) {
+        next()
+      } else {
+        throw new Error('User not authenticated')
+      }
+    } catch (error) {
+      console.error('Authentication error:', error)
       next({ name: 'login' })
     }
   } else {
     next()
   }
 })
-
-function authenticateUser() {
-  return new Promise((resolve, reject) => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      unsubscribe() // Detener la escucha una vez que se ha verificado el estado de autenticación
-      if (user) {
-        resolve(true)
-      } else {
-        reject(new Error('User not authenticated'))
-      }
-    })
-  })
-}
 
 export default router

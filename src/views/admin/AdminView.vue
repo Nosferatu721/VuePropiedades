@@ -1,6 +1,7 @@
-<script setup>
-</script>
+<script setup></script>
 
 <template>
   <h2 class="text-center text-h3 my-5 font-weight-bold">Admin Dashboard</h2>
+
+  <v-btn :to="{ name: 'admin-nuevaPropiedad' }" color="blue" variant="flat">Nueva Propiedad</v-btn>
 </template>
