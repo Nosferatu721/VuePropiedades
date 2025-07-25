@@ -1,10 +1,24 @@
 <script setup>
+import { ref } from 'vue'
 import { useForm, useField } from 'vee-validate'
+import { useFirestore } from 'vuefire'
 import { validationSchema, imageSchema } from '@/validation/propiedadSchema'
+import { collection, addDoc } from 'firebase/firestore'
+import { useRouter } from 'vue-router'
+import useImage from '@/composables/useImage'
+import useLocationMap from '@/composables/useLocationMap'
+import 'leaflet/dist/leaflet.css'
+import { LMap, LTileLayer, LMarker } from '@vue-leaflet/vue-leaflet'
+
+const router = useRouter()
 
 const cantidadHabitaciones = [1, 2, 3, 4, 5]
 const cantidadBaños = [1, 2, 3, 4]
-const cantidadEstacionamiento = [0, 1, 2, 3, 4]
+const cantidadEstacionamiento = [1, 2, 3]
+
+const db = useFirestore()
+const { url, uploadImage, image } = useImage()
+const { zoom, center, setCenter } = useLocationMap()
 
 const { handleSubmit } = useForm({
   validationSchema: {
@@ -20,11 +34,19 @@ const habitaciones = useField('habitaciones')
 const wc = useField('wc')
 const estacionamiento = useField('estacionamiento')
 const descripcion = useField('descripcion')
-const alberca = useField('alberca')
+const alberca = useField('alberca', null, { initialValue: false })
 
-const submit = handleSubmit((values) => {
-  console.log('Form submitted with values:', values)
-  // Aquí puedes manejar el envío del formulario, como llamar a una API o actualizar el estado
+const submit = handleSubmit(async (values) => {
+  const { imagen, ...propiedad } = values
+
+  const docRef = await addDoc(collection(db, 'propiedades'), {
+    ...propiedad,
+    imagen: url.value,
+    ubicacion: center.value,
+  })
+  if (docRef.id) {
+    router.push({ name: 'admin-propiedades' })
+  }
 })
 </script>
 
@@ -49,7 +71,13 @@ const submit = handleSubmit((values) => {
         class="mb-4"
         v-model="imagen.value.value"
         :error-messages="imagen.errorMessage.value"
+        @change="uploadImage"
       />
+      <div v-if="image" class="mt-5">
+        <p class="font-weight-bold">Imagen Propiedad:</p>
+        <img class="w-50" :src="image" />
+      </div>
+
       <v-text-field
         label="Precio"
         type="number"
@@ -97,6 +125,16 @@ const submit = handleSubmit((values) => {
 
         <v-col>
           <v-checkbox label="Alberca" v-model="alberca.value.value" :error-messages="alberca.errorMessage.value" />
+        </v-col>
+
+        <v-col class="mb-5">
+          <h2 class="text-h5 font-weight-bold">Ubicación</h2>
+          <div style="height: 600px; width: 800px">
+            <LMap ref="map" v-model:zoom="zoom" :center="center" :use-global-leaflet="false">
+              <LTileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"></LTileLayer>
+              <LMarker :lat-lng="center" draggable @moveend="setCenter"></LMarker>
+            </LMap>
+          </div>
         </v-col>
       </v-row>
       <v-btn color="indigo-darken-3 p-2" block @click="submit">Agregar Propiedad</v-btn>
